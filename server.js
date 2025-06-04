@@ -88,6 +88,11 @@ const server = http.createServer((req, res) => {
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(todo));
+  } else if (pathname === "/todos/update") {
+    const allTodos = JSON.parse(fs.readFileSync(filePath, { encoding: "utf-8" }));
+    const id = url.searchParams.get("id");
+
+    res.end("Update Todo");
   } else {
     res.end("Route not found");
   }
