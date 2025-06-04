@@ -6,10 +6,12 @@ const filePath = path.join(__dirname, "./db/todo.json");
 // console.log(filePath);
 
 const server = http.createServer((req, res) => {
-  if (req.method === "GET" && req.url === "/") {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
+  if (req.method === "GET" && pathname === "/") {
     res.writeHead(200, { "Content-Type": "text/plain" });
     res.end("Hello, World!");
-  } else if (req.url === "/todos" && req.method === "GET") {
+  } else if (pathname === "/todos" && req.method === "GET") {
     const todos = fs.createReadStream(filePath, {
       encoding: "utf-8",
     });
@@ -25,7 +27,7 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(data);
     });
-  } else if (req.url === "/todos/create-todo") {
+  } else if (pathname === "/todos/create-todo") {
     let data = "";
     req.on("data", (chunk) => {
       data = data + chunk;
@@ -67,9 +69,25 @@ const server = http.createServer((req, res) => {
     });
 
     // res.end("todo created");
-  } else if (req.url.startsWith("/todo")) {
-    console.log(req.url.split("=")[1]);
-    res.end("single todo");
+  } else if (pathname === "/todo") {
+    console.log(url.searchParams.get("id"));
+    const id = url.searchParams.get("id");
+    if (!id) {
+      res.writeHead(400, { "Content-Type": "text/plain" });
+      res.end("Bad Request: Missing id parameter");
+      return;
+    }
+
+    const allTodos = JSON.parse(fs.readFileSync(filePath, { encoding: "utf-8" })) || [];
+    const todo = allTodos.find((todo) => todo.id === id);
+    if (!todo) {
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      res.end("Todo not found");
+      return;
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(todo));
   } else {
     res.end("Route not found");
   }
